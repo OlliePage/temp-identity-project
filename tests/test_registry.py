@@ -113,7 +113,13 @@ def test_create_providers():
 
 def test_get_all_providers():
     """Test getting all providers."""
+    # Create a new registry without auto-discovery
     registry = ProviderRegistry()
+    registry._initialized = True  # Skip auto-discovery
+    
+    # Start with empty providers
+    registry.email_providers = {}
+    registry.sms_providers = {}
     
     # Register providers
     registry.register_email_provider(MockEmailProvider)
@@ -123,6 +129,7 @@ def test_get_all_providers():
     email_providers = registry.get_all_email_providers()
     sms_providers = registry.get_all_sms_providers()
     
+    # Now we can check counts since we disabled auto-discovery
     assert len(email_providers) == 1
     assert "mock_email" in email_providers
     assert email_providers["mock_email"] == MockEmailProvider
