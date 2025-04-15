@@ -8,7 +8,7 @@ license = "MIT"
 packages = [{include = "tempidentity"}]
 
 [tool.poetry.dependencies]
-python = "^3.6"
+python = ">=3.8.0,<4.0"
 requests = "^2.25.0"
 colorama = "^0.4.4"
 rich = "^10.0.0"
