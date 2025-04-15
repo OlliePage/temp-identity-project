@@ -14,16 +14,16 @@ class MockEmailProvider(EmailProvider):
     display_name = "Mock Email"
     description = "Mock email provider for testing"
     
-    def create_email(self):
+    def create_email(self) -> tuple:
         return True, "test@example.com", "password"
     
-    def check_messages(self):
+    def check_messages(self) -> list:
         return []
     
-    def wait_for_messages(self, timeout=60, check_interval=5):
+    def wait_for_messages(self, timeout=60, check_interval=5) -> list:
         return []
     
-    def get_message_content(self, message_id):
+    def get_message_content(self, message_id) -> dict:
         return {}
 
 
@@ -32,19 +32,19 @@ class MockSMSProvider(SMSProvider):
     display_name = "Mock SMS"
     description = "Mock SMS provider for testing"
     
-    def get_available_services(self):
+    def get_available_services(self) -> list:
         return [{"id": "service1", "name": "Service 1", "price": "1.00"}]
     
-    def create_number(self, service_name):
+    def create_number(self, service_name) -> tuple:
         return True, "+1234567890"
     
-    def check_sms(self):
+    def check_sms(self) -> None:
         return None
     
-    def wait_for_sms(self, timeout=300, check_interval=10):
+    def wait_for_sms(self, timeout=300, check_interval=10) -> None:
         return None
     
-    def cancel_number(self):
+    def cancel_number(self) -> bool:
         return True
 
 

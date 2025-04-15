@@ -1,5 +1,7 @@
 # TempIdentity
 
+[![CI](https://github.com/OlliePage/TempIdentity/actions/workflows/ci.yml/badge.svg)](https://github.com/OlliePage/TempIdentity/actions/workflows/ci.yml)
+
 A powerful tool for generating temporary email addresses and phone numbers with an interactive terminal interface.
 
 ## Features
@@ -17,8 +19,8 @@ A powerful tool for generating temporary email addresses and phone numbers with 
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/tempidentity.git
-cd tempidentity
+git clone https://github.com/OlliePage/TempIdentity.git
+cd TempIdentity
 
 # Install with Poetry
 poetry install
@@ -69,7 +71,34 @@ tempidentity --help
 TempIdentity uses an extensible provider system, allowing you to add custom email and SMS services. 
 See [PLUGIN_DEVELOPMENT_GUIDE.md](PLUGIN_DEVELOPMENT_GUIDE.md) for more information.
 
+## Development
+
+For detailed development instructions, see [DEVELOPMENT.md](DEVELOPMENT.md).
+
+### Quick Start for Development
+
+```bash
+# Install dependencies
+poetry install
+
+# Run tests
+poetry run pytest
+
+# Run with coverage
+poetry run pytest --cov=tempidentity
+
+# Format code
+poetry run black tempidentity
+
+# Check style
+poetry run flake8 tempidentity
+```
+
 ## Requirements
 
 - Python 3.6+
 - An API key for TextVerified (for SMS functionality)
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
