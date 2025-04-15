@@ -27,13 +27,17 @@ def print_info(message: str):
 
 def spinner(message: str):
     print(f"{message}...")
-    return type('obj', (object,), {
-        '__enter__': lambda self: self,
-        '__exit__': lambda *args: None,
-        'ok': lambda text="": print_success(text if text else "Done!"),
-        'fail': lambda text="": print_error(text if text else "Failed!"),
-        'text': lambda value: None
-    })()
+    return type(
+        "obj",
+        (object,),
+        {
+            "__enter__": lambda self: self,
+            "__exit__": lambda *args: None,
+            "ok": lambda text="": print_success(text if text else "Done!"),
+            "fail": lambda text="": print_error(text if text else "Failed!"),
+            "text": lambda value: None,
+        },
+    )()
 
 
 # Configuration management
@@ -50,22 +54,17 @@ def load_config() -> Dict:
         default_config = {
             "preferred_email_service": "mail.gw",
             "preferred_sms_service": "textverified",
-            "providers": {
-                "mail.gw": {},
-                "textverified": {
-                    "api_key": ""
-                }
-            },
+            "providers": {"mail.gw": {}, "textverified": {"api_key": ""}},
             "default_wait_time": 120,
             "save_history": True,
-            "history_limit": 20
+            "history_limit": 20,
         }
-        with open(CONFIG_FILE, 'w') as f:
+        with open(CONFIG_FILE, "w") as f:
             json.dump(default_config, f, indent=4)
         return default_config.copy()
 
     try:
-        with open(CONFIG_FILE, 'r') as f:
+        with open(CONFIG_FILE, "r") as f:
             return json.load(f)
     except Exception as e:
         print_error(f"Error loading config: {e}")
@@ -78,7 +77,7 @@ def save_config(config: Dict):
         CONFIG_DIR.mkdir(parents=True)
 
     try:
-        with open(CONFIG_FILE, 'w') as f:
+        with open(CONFIG_FILE, "w") as f:
             json.dump(config, f, indent=4)
         return True
     except Exception as e:
@@ -93,8 +92,8 @@ def create_temp_email():
     config = load_config()
 
     # Get preferred email service
-    service_name = config.get('preferred_email_service', 'mail.gw')
-    provider_config = config.get('providers', {}).get(service_name, {})
+    service_name = config.get("preferred_email_service", "mail.gw")
+    provider_config = config.get("providers", {}).get(service_name, {})
 
     # Create email provider
     with spinner(f"Creating {service_name} provider") as sp:
@@ -117,18 +116,18 @@ def create_temp_email():
     print_info(f"Password: {password}")
 
     # Save email to history
-    save_history("email", {
-        "email": email,
-        "password": password,
-        "service": service_name
-    })
+    save_history(
+        "email", {"email": email, "password": password, "service": service_name}
+    )
 
     # Ask if user wants to wait for messages
-    wait_time = config.get('default_wait_time', 120)
-    wait_for_msgs = input(f"Wait for incoming messages? [Y/n]: ").lower() != 'n'
+    wait_time = config.get("default_wait_time", 120)
+    wait_for_msgs = input(f"Wait for incoming messages? [Y/n]: ").lower() != "n"
 
     if wait_for_msgs:
-        wait_time_input = input(f"How long to wait for messages (seconds) [{wait_time}]: ")
+        wait_time_input = input(
+            f"How long to wait for messages (seconds) [{wait_time}]: "
+        )
         if wait_time_input.strip():
             try:
                 wait_time = int(wait_time_input)
@@ -153,17 +152,22 @@ def create_temp_email():
                 print("-" * 40)
 
                 # Get detailed message content if needed
-                if 'text' not in message and 'html' not in message and 'id' in message:
-                    detailed_message = email_provider.get_message_content(message['id'])
+                if "text" not in message and "html" not in message and "id" in message:
+                    detailed_message = email_provider.get_message_content(message["id"])
                     if detailed_message:
                         message = detailed_message
 
                 # Display content
-                if 'text' in message and message['text']:
-                    print(message['text'])
-                elif 'html' in message and message['html']:
+                if "text" in message and message["text"]:
+                    print(message["text"])
+                elif "html" in message and message["html"]:
                     print("Message is in HTML format. Here's a simplified version:")
-                    print(message['html'].replace('<br>', '\n').replace('<p>', '\n').replace('</p>', '\n'))
+                    print(
+                        message["html"]
+                        .replace("<br>", "\n")
+                        .replace("<p>", "\n")
+                        .replace("</p>", "\n")
+                    )
                 else:
                     print("No message content available")
 
@@ -174,24 +178,24 @@ def create_temp_sms():
     config = load_config()
 
     # Get preferred SMS service
-    service_name = config.get('preferred_sms_service', 'textverified')
-    provider_config = config.get('providers', {}).get(service_name, {})
+    service_name = config.get("preferred_sms_service", "textverified")
+    provider_config = config.get("providers", {}).get(service_name, {})
 
     # Check if API key is configured
-    if not provider_config.get('api_key'):
+    if not provider_config.get("api_key"):
         print_error(f"API key for {service_name} is not configured")
         api_key = input("Enter API key: ")
         if not api_key:
             return
 
         # Update configuration
-        if not config.get('providers'):
-            config['providers'] = {}
-        if not config['providers'].get(service_name):
-            config['providers'][service_name] = {}
-        config['providers'][service_name]['api_key'] = api_key
+        if not config.get("providers"):
+            config["providers"] = {}
+        if not config["providers"].get(service_name):
+            config["providers"][service_name] = {}
+        config["providers"][service_name]["api_key"] = api_key
         save_config(config)
-        provider_config = config['providers'][service_name]
+        provider_config = config["providers"][service_name]
 
     # Create SMS provider
     with spinner(f"Creating {service_name} provider") as sp:
@@ -212,7 +216,9 @@ def create_temp_sms():
     # Display services
     print("\nAvailable services:")
     for i, service in enumerate(services):
-        print(f"{i + 1}. {service.get('name', 'Unknown')} ({service.get('id', 'Unknown')}) - ${service.get('price', '0.00')}")
+        print(
+            f"{i + 1}. {service.get('name', 'Unknown')} ({service.get('id', 'Unknown')}) - ${service.get('price', '0.00')}"
+        )
 
     # Select a service
     service_idx = input("\nSelect service (number): ")
@@ -228,7 +234,7 @@ def create_temp_sms():
 
     # Create phone number
     with spinner(f"Creating phone number for {selected_service.get('name')}") as sp:
-        success, phone_number = sms_provider.create_number(selected_service.get('id'))
+        success, phone_number = sms_provider.create_number(selected_service.get("id"))
         if not success:
             sp.fail("Failed to create phone number")
             return
@@ -239,14 +245,13 @@ def create_temp_sms():
     print_info(f"Service: {selected_service.get('name')}")
 
     # Save to history
-    save_history("sms", {
-        "phone_number": phone_number,
-        "service": selected_service.get('name')
-    })
+    save_history(
+        "sms", {"phone_number": phone_number, "service": selected_service.get("name")}
+    )
 
     try:
         # Wait for SMS
-        wait_time = config.get('default_wait_time', 300)
+        wait_time = config.get("default_wait_time", 300)
         wait_time_input = input(f"How long to wait for SMS (seconds) [{wait_time}]: ")
         if wait_time_input.strip():
             try:
@@ -273,7 +278,7 @@ def create_temp_sms():
 def save_history(history_type: str, data: Dict):
     """Save history item to file."""
     config = load_config()
-    if not config.get('save_history', True):
+    if not config.get("save_history", True):
         return
 
     history_file = CONFIG_DIR / f"{history_type}_history.json"
@@ -282,22 +287,22 @@ def save_history(history_type: str, data: Dict):
     # Load existing history
     if history_file.exists():
         try:
-            with open(history_file, 'r') as f:
+            with open(history_file, "r") as f:
                 history = json.load(f)
         except:
             history = []
 
     # Add new item with timestamp
-    data['timestamp'] = time.time()
+    data["timestamp"] = time.time()
     history.insert(0, data)
 
     # Limit history size
-    limit = config.get('history_limit', 20)
+    limit = config.get("history_limit", 20)
     history = history[:limit]
 
     # Save history
     try:
-        with open(history_file, 'w') as f:
+        with open(history_file, "w") as f:
             json.dump(history, f, indent=4)
     except Exception as e:
         print_error(f"Error saving history: {e}")
@@ -327,15 +332,17 @@ def configure_provider_type(provider_type, config):
     """Configure a specific provider type."""
     if provider_type == "email":
         providers = registry.get_all_email_providers()
-        current = config.get('preferred_email_service', 'mail.gw')
+        current = config.get("preferred_email_service", "mail.gw")
     else:
         providers = registry.get_all_sms_providers()
-        current = config.get('preferred_sms_service', 'textverified')
+        current = config.get("preferred_sms_service", "textverified")
 
     # Display available providers
     print(f"\n==== Available {provider_type.title()} Providers ====")
     for i, (name, provider_class) in enumerate(providers.items()):
-        print(f"{i + 1}. {provider_class.display_name} ({name}) - {provider_class.description}")
+        print(
+            f"{i + 1}. {provider_class.display_name} ({name}) - {provider_class.description}"
+        )
         if name == current:
             print("   ↳ Current provider")
 
@@ -356,17 +363,17 @@ def configure_provider_type(provider_type, config):
 
     # Set as preferred provider
     if provider_type == "email":
-        config['preferred_email_service'] = provider_name
+        config["preferred_email_service"] = provider_name
     else:
-        config['preferred_sms_service'] = provider_name
+        config["preferred_sms_service"] = provider_name
 
     # Get provider configuration
-    if not config.get('providers'):
-        config['providers'] = {}
-    if not config['providers'].get(provider_name):
-        config['providers'][provider_name] = {}
+    if not config.get("providers"):
+        config["providers"] = {}
+    if not config["providers"].get(provider_name):
+        config["providers"][provider_name] = {}
 
-    provider_config = config['providers'][provider_name]
+    provider_config = config["providers"][provider_name]
 
     # Get setup fields
     setup_fields = provider_class.get_setup_fields()
@@ -377,15 +384,17 @@ def configure_provider_type(provider_type, config):
         print(f"\nConfiguring {provider_class.display_name}:")
 
         for field in setup_fields:
-            name = field.get('name')
-            display_name = field.get('display_name')
-            field_type = field.get('type', 'text')
-            required = field.get('required', False)
-            help_text = field.get('help_text', '')
+            name = field.get("name")
+            display_name = field.get("display_name")
+            field_type = field.get("type", "text")
+            required = field.get("required", False)
+            help_text = field.get("help_text", "")
 
             # Display current value if it exists
-            current_value = provider_config.get(name, '')
-            display_value = '*****' if field_type == 'password' and current_value else current_value
+            current_value = provider_config.get(name, "")
+            display_value = (
+                "*****" if field_type == "password" and current_value else current_value
+            )
 
             print(f"\n{display_name} ({name}):")
             if help_text:
@@ -394,7 +403,7 @@ def configure_provider_type(provider_type, config):
                 print(f"  Current value: {display_value}")
 
             # Get new value
-            if field_type == 'password':
+            if field_type == "password":
                 prompt = f"Enter new {display_name} (leave empty to keep current): "
             else:
                 prompt = f"Enter {display_name} (leave empty to keep current): "
