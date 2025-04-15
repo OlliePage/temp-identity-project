@@ -24,6 +24,8 @@ from tempidentity.core import (
     cancel_sms_number,
     get_available_providers,
     configure_provider,
+    setup_logging,
+    LOG_FILE,
 )
 
 # Try to import colorama for cross-platform colored terminal output
@@ -1018,12 +1020,21 @@ def general_settings_ui():
             "Enabled" if config.get("save_history", True) else "Disabled",
         )
         table.add_row("3. History Limit", f"{config.get('history_limit', 20)} items")
+        table.add_row(
+            "4. Logging",
+            "Enabled" if config.get("logging", True) else "Disabled",
+        )
+        table.add_row("5. Log Retention", f"{config.get('log_retention_days', 3)} days")
+        table.add_row("6. Log Size Limit", f"{config.get('log_max_size_mb', 10)} MB")
+        table.add_row("7. View Log File", "")
         table.add_row("0. Back", "")
 
         console.print(table)
 
         choice = Prompt.ask(
-            "Select an option to change", choices=["0", "1", "2", "3"], default="0"
+            "Select an option to change", 
+            choices=["0", "1", "2", "3", "4", "5", "6", "7"], 
+            default="0"
         )
     else:
         print(f"{Fore.CYAN}General Settings:{Style.RESET_ALL}")
@@ -1032,6 +1043,12 @@ def general_settings_ui():
             f"2. Save History: {'Enabled' if config.get('save_history', True) else 'Disabled'}"
         )
         print(f"3. History Limit: {config.get('history_limit', 20)} items")
+        print(
+            f"4. Logging: {'Enabled' if config.get('logging', True) else 'Disabled'}"
+        )
+        print(f"5. Log Retention: {config.get('log_retention_days', 3)} days")
+        print(f"6. Log Size Limit: {config.get('log_max_size_mb', 10)} MB")
+        print(f"7. View Log File")
         print("0. Back")
         print()
 
@@ -1078,6 +1095,68 @@ def general_settings_ui():
                 print_error("Limit must be greater than 0.")
         except:
             print_error("Invalid limit. Please enter a number.")
+    elif choice == "4":
+        # Logging setting
+        logging_enabled = not config.get("logging", True)
+        config["logging"] = logging_enabled
+        save_config(config)
+        print_success(f"Logging {'enabled' if logging_enabled else 'disabled'}.")
+    elif choice == "5":
+        # Log retention days
+        days = prompt(
+            "Enter log retention in days", default=str(config.get("log_retention_days", 3))
+        )
+
+        try:
+            days = int(days)
+            if days > 0:
+                config["log_retention_days"] = days
+                save_config(config)
+                print_success("Log retention days updated.")
+            else:
+                print_error("Days must be greater than 0.")
+        except:
+            print_error("Invalid value. Please enter a number.")
+    elif choice == "6":
+        # Log size limit
+        size = prompt(
+            "Enter log size limit in MB", default=str(config.get("log_max_size_mb", 10))
+        )
+
+        try:
+            size = int(size)
+            if size > 0:
+                config["log_max_size_mb"] = size
+                save_config(config)
+                print_success("Log size limit updated.")
+            else:
+                print_error("Size must be greater than 0.")
+        except:
+            print_error("Invalid value. Please enter a number.")
+    elif choice == "7":
+        # View log file
+        clear_screen()
+        print_logo()
+        print_step("1", "1", "Log File")
+        
+        if not os.path.exists(LOG_FILE):
+            print_warning("Log file does not exist yet")
+        else:
+            import logging
+            logging.info("User viewed log file from settings")
+            
+            if HAS_RICH:
+                try:
+                    with open(LOG_FILE, 'r') as f:
+                        console.print(Panel(f.read(), title="TempIdentity Log File"))
+                except Exception as e:
+                    print_error(f"Error reading log file: {e}")
+            else:
+                try:
+                    with open(LOG_FILE, 'r') as f:
+                        print(f.read())
+                except Exception as e:
+                    print_error(f"Error reading log file: {e}")
 
     input("Press Enter to continue...")
 
@@ -1176,10 +1255,10 @@ def run_setup_wizard():
 def main():
     """Main program entry point."""
     try:
-        # Initialize the registry
-        get_available_providers()
-
-        # Parse command line arguments
+        # Initialize logging
+        setup_logging()
+        
+        # Get command-line arguments before logging for privacy
         parser = argparse.ArgumentParser(
             description="TempIdentity - Temporary Email & SMS Tool"
         )
@@ -1193,20 +1272,48 @@ def main():
             "--sms", action="store_true", help="Create a temporary phone number"
         )
         parser.add_argument("--wait", type=int, help="Wait time in seconds")
+        parser.add_argument(
+            "--log-view", action="store_true", help="View the log file"
+        )
         args = parser.parse_args()
+        
+        # Log start of program
+        import logging
+        logging.info(f"TempIdentity v{__version__} starting")
+        
+        # Initialize the registry
+        get_available_providers()
 
         # Check if first run
         config_exists = os.path.exists(CONFIG_FILE)
+        if not config_exists:
+            logging.info("First run detected, configuration file does not exist")
+
+        # View logs if requested
+        if args.log_view:
+            if os.path.exists(LOG_FILE):
+                if HAS_RICH:
+                    with open(LOG_FILE, 'r') as f:
+                        console.print(Panel(f.read(), title="TempIdentity Log File"))
+                else:
+                    os.system(f"cat {LOG_FILE}")
+            else:
+                print_error("Log file does not exist yet")
+            return
 
         # Direct command line usage
         if args.email:
+            logging.info("Command-line mode: creating temporary email")
             create_temp_email_ui()
             return
         elif args.sms:
+            logging.info("Command-line mode: creating temporary SMS")
             create_temp_sms_ui()
             return
 
         # Interactive mode
+        logging.info("Starting interactive mode")
+        
         # First run wizard
         if not config_exists:
             run_setup_wizard()
@@ -1216,26 +1323,37 @@ def main():
             choice = show_menu()
 
             if choice == "0":
+                logging.info("User selected to exit the application")
                 clear_screen()
                 print_logo()
                 print_info("Thank you for using TempIdentity!")
                 break
             elif choice == "1":
+                logging.info("User selected to create temporary email")
                 create_temp_email_ui()
             elif choice == "2":
+                logging.info("User selected to create temporary SMS")
                 create_temp_sms_ui()
             elif choice == "3":
+                logging.info("User selected to view email history")
                 view_email_history_ui()
             elif choice == "4":
+                logging.info("User selected to view SMS history")
                 view_sms_history_ui()
             elif choice == "5":
+                logging.info("User selected to access settings")
                 settings_menu_ui()
     except KeyboardInterrupt:
+        import logging
+        logging.info("Program interrupted by user (KeyboardInterrupt)")
         clear_screen()
         print_logo()
         print_info("Exiting TempIdentity...")
     except Exception as e:
+        import logging
+        logging.exception(f"Unhandled exception: {str(e)}")
         print_error(f"An error occurred: {e}")
+        print_info(f"Check the log file for details: {LOG_FILE}")
         input("Press Enter to continue...")
 
 

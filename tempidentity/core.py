@@ -5,6 +5,8 @@ Core functionality for TempIdentity.
 import os
 import json
 import time
+import logging
+import datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 
@@ -13,6 +15,7 @@ from tempidentity.providers.registry import registry
 # Configuration
 CONFIG_DIR = Path.home() / ".tempidentity"
 CONFIG_FILE = CONFIG_DIR / "config.json"
+LOG_FILE = CONFIG_DIR / "log.txt"
 
 # Default configuration
 DEFAULT_CONFIG = {
@@ -23,12 +26,85 @@ DEFAULT_CONFIG = {
     "save_history": True,
     "history_limit": 20,
     "theme": "default",
+    "logging": True,
+    "log_retention_days": 3,
+    "log_max_size_mb": 10,
 }
+
+# Setup logging
+def setup_logging():
+    """Configure logging with timestamps and output to both console and file."""
+    if not CONFIG_DIR.exists():
+        CONFIG_DIR.mkdir(parents=True)
+    
+    # Check if log file needs to be rotated
+    rotate_logs()
+    
+    # Configure logging format and handlers
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    
+    # Root logger
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    
+    # Clear existing handlers if any
+    if logger.handlers:
+        for handler in logger.handlers[:]:
+            logger.removeHandler(handler)
+    
+    # Console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+    
+    # File handler
+    file_handler = logging.FileHandler(LOG_FILE)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    
+    logging.info("Logging initialized")
+
+def rotate_logs():
+    """Check if logs need to be rotated based on age or size."""
+    config = load_config(skip_logging=True)
+    
+    if not LOG_FILE.exists():
+        return
+    
+    # Check file age
+    file_time = datetime.datetime.fromtimestamp(LOG_FILE.stat().st_mtime)
+    now = datetime.datetime.now()
+    age_days = (now - file_time).days
+    
+    # Check file size
+    size_mb = LOG_FILE.stat().st_size / (1024 * 1024)  # Convert bytes to MB
+    
+    # Rotate if either condition is met
+    if (age_days >= config.get("log_retention_days", 3) or 
+        size_mb >= config.get("log_max_size_mb", 10)):
+        try:
+            # Create backup of old log
+            backup_file = LOG_FILE.with_suffix(f".bak.{int(time.time())}")
+            LOG_FILE.rename(backup_file)
+            
+            # Limit number of backups to keep
+            backup_files = sorted(
+                CONFIG_DIR.glob("log.txt.bak.*"),
+                key=lambda x: x.stat().st_mtime
+            )
+            
+            # Keep only the 3 most recent backups
+            for old_file in backup_files[:-3]:
+                old_file.unlink()
+                
+        except Exception as e:
+            # If failed to rotate, just continue with current log
+            pass
 
 # ====== Configuration Management ======
 
 
-def load_config() -> Dict:
+def load_config(skip_logging=False) -> Dict:
     """Load configuration from file or create default."""
     if not CONFIG_DIR.exists():
         CONFIG_DIR.mkdir(parents=True)
@@ -50,8 +126,12 @@ def load_config() -> Dict:
                 config["providers"] = {}
             return config
     except Exception as e:
-        print(f"Error loading config: {e}")
-        print("Using default configuration")
+        if not skip_logging:
+            if logging.getLogger().handlers:
+                logging.error(f"Error loading config: {e}")
+            else:
+                print(f"Error loading config: {e}")
+                print("Using default configuration")
         return DEFAULT_CONFIG.copy()
 
 
@@ -63,9 +143,10 @@ def save_config(config: Dict):
     try:
         with open(CONFIG_FILE, "w") as f:
             json.dump(config, f, indent=4)
+        logging.info("Configuration saved successfully")
         return True
     except Exception as e:
-        print(f"Error saving config: {e}")
+        logging.error(f"Error saving config: {e}")
         return False
 
 
@@ -83,7 +164,8 @@ def save_history(history_type: str, data: Dict):
         try:
             with open(history_file, "r") as f:
                 history = json.load(f)
-        except:
+        except Exception as e:
+            logging.error(f"Error loading history file: {e}")
             history = []
 
     # Add new item with timestamp
@@ -98,8 +180,9 @@ def save_history(history_type: str, data: Dict):
     try:
         with open(history_file, "w") as f:
             json.dump(history, f, indent=4)
+        logging.info(f"Added new item to {history_type} history")
     except Exception as e:
-        print(f"Error saving history: {e}")
+        logging.error(f"Error saving history: {e}")
 
 
 def get_history(history_type: str) -> List[Dict]:
@@ -107,12 +190,16 @@ def get_history(history_type: str) -> List[Dict]:
     history_file = CONFIG_DIR / f"{history_type}_history.json"
 
     if not history_file.exists():
+        logging.info(f"No {history_type} history file found")
         return []
 
     try:
         with open(history_file, "r") as f:
-            return json.load(f)
-    except:
+            history = json.load(f)
+            logging.info(f"Loaded {len(history)} {history_type} history items")
+            return history
+    except Exception as e:
+        logging.error(f"Error reading history file: {e}")
         return []
 
 
@@ -133,23 +220,34 @@ def create_temp_email() -> Tuple[bool, str, str, List[Dict]]:
     # Get preferred email service
     service_name = config.get("preferred_email_service", "mail.gw")
     provider_config = config.get("providers", {}).get(service_name, {})
+    
+    logging.info(f"Creating temporary email using {service_name} provider")
 
     # Create email provider
     email_provider = registry.create_email_provider(service_name, provider_config)
     if not email_provider:
+        logging.error(f"Failed to instantiate email provider: {service_name}")
         return False, "", "", []
 
     # Create email
-    success, email, password = email_provider.create_email()
-    if not success:
+    try:
+        logging.info("Attempting to create email address...")
+        success, email, password = email_provider.create_email()
+        if not success:
+            logging.error("Failed to create temporary email")
+            return False, "", "", []
+            
+        logging.info(f"Successfully created email: {email}")
+        
+        # Save email to history
+        save_history(
+            "email", {"email": email, "password": password, "service": service_name}
+        )
+
+        return True, email, password, []
+    except Exception as e:
+        logging.error(f"Exception while creating email: {str(e)}")
         return False, "", "", []
-
-    # Save email to history
-    save_history(
-        "email", {"email": email, "password": password, "service": service_name}
-    )
-
-    return True, email, password, []
 
 
 def check_email_messages(
@@ -176,9 +274,12 @@ def check_email_messages(
     config = load_config()
     provider_config = config.get("providers", {}).get(service_name, {})
 
+    logging.info(f"Checking messages for {email} using {service_name} provider")
+    
     # Create email provider
     email_provider = registry.create_email_provider(service_name, provider_config)
     if not email_provider:
+        logging.error(f"Failed to instantiate email provider: {service_name}")
         return []
 
     # Set credentials
@@ -186,10 +287,20 @@ def check_email_messages(
     email_provider.password = password
 
     # Check for messages
-    if wait:
-        return email_provider.wait_for_messages(timeout=wait_time)
-    else:
-        return email_provider.check_messages()
+    try:
+        if wait:
+            logging.info(f"Waiting for new messages for {wait_time} seconds")
+            messages = email_provider.wait_for_messages(timeout=wait_time)
+            logging.info(f"Received {len(messages)} message(s) after waiting")
+            return messages
+        else:
+            logging.info("Checking for messages (no wait)")
+            messages = email_provider.check_messages()
+            logging.info(f"Found {len(messages)} message(s)")
+            return messages
+    except Exception as e:
+        logging.error(f"Error checking messages: {str(e)}")
+        return []
 
 
 def get_email_message_content(
@@ -211,9 +322,12 @@ def get_email_message_content(
     config = load_config()
     provider_config = config.get("providers", {}).get(service_name, {})
 
+    logging.info(f"Getting message content for message ID: {message_id}")
+    
     # Create email provider
     email_provider = registry.create_email_provider(service_name, provider_config)
     if not email_provider:
+        logging.error(f"Failed to instantiate email provider: {service_name}")
         return {}
 
     # Set credentials
@@ -221,7 +335,16 @@ def get_email_message_content(
     email_provider.password = password
 
     # Get message content
-    return email_provider.get_message_content(message_id)
+    try:
+        message = email_provider.get_message_content(message_id)
+        if message:
+            logging.info(f"Successfully retrieved message content")
+        else:
+            logging.warning(f"Message content is empty")
+        return message
+    except Exception as e:
+        logging.error(f"Error getting message content: {str(e)}")
+        return {}
 
 
 # ====== SMS Functionality ======
