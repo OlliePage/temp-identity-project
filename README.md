@@ -1,6 +1,6 @@
 # TempIdentity
 
-[![CI](https://github.com/OlliePage/TempIdentity/actions/workflows/ci.yml/badge.svg)](https://github.com/OlliePage/TempIdentity/actions/workflows/ci.yml)
+[![CI](https://github.com/OlliePage/temp-identity/actions/workflows/ci.yml/badge.svg)](https://github.com/OlliePage/temp-identity/actions/workflows/ci.yml)
 
 A powerful tool for generating temporary email addresses and phone numbers with an interactive terminal interface.
 
@@ -19,8 +19,8 @@ A powerful tool for generating temporary email addresses and phone numbers with 
 
 ```bash
 # Clone the repository
-git clone https://github.com/OlliePage/TempIdentity.git
-cd TempIdentity
+git clone https://github.com/OlliePage/temp-identity.git
+cd temp-identity
 
 # Install with Poetry
 poetry install
