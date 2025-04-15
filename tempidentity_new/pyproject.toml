@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "tempidentity"
+version = "0.1.0"
+description = "A powerful tool for generating temporary email addresses and phone numbers with an interactive terminal interface"
+authors = ["Your Name <your.email@example.com>"]
+readme = "README.md"
+license = "MIT"
+packages = [{include = "tempidentity"}]
+
+[tool.poetry.dependencies]
+python = "^3.6"
+requests = "^2.25.0"
+colorama = "^0.4.4"
+rich = "^10.0.0"
+yaspin = "^2.1.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.0.0"
+pytest-cov = "^4.0.0"
+black = "^22.3.0"
+flake8 = "^5.0.0"
+
+[tool.poetry.scripts]
+tempidentity = "tempidentity.cli:main"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
