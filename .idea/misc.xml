@@ -3,8 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="Poetry (energy-management)" />
   </component>
-  <component name="GithubDefaultAccount">
-    <option name="defaultAccountId" value="c89dd307-b2cd-45d8-ab8c-ac84f6756e76" />
-  </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Poetry (energy-management)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Poetry (TempIdentity)" project-jdk-type="Python SDK" />
 </project>

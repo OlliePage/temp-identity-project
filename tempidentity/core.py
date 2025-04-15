@@ -31,75 +31,78 @@ DEFAULT_CONFIG = {
     "log_max_size_mb": 10,
 }
 
+
 # Setup logging
 def setup_logging():
     """Configure logging with timestamps and output to both console and file."""
     if not CONFIG_DIR.exists():
         CONFIG_DIR.mkdir(parents=True)
-    
+
     # Check if log file needs to be rotated
     rotate_logs()
-    
+
     # Configure logging format and handlers
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+
     # Root logger
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    
+
     # Clear existing handlers if any
     if logger.handlers:
         for handler in logger.handlers[:]:
             logger.removeHandler(handler)
-    
+
     # Console handler
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
-    
+
     # File handler
     file_handler = logging.FileHandler(LOG_FILE)
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
-    
+
     logging.info("Logging initialized")
+
 
 def rotate_logs():
     """Check if logs need to be rotated based on age or size."""
     config = load_config(skip_logging=True)
-    
+
     if not LOG_FILE.exists():
         return
-    
+
     # Check file age
     file_time = datetime.datetime.fromtimestamp(LOG_FILE.stat().st_mtime)
     now = datetime.datetime.now()
     age_days = (now - file_time).days
-    
+
     # Check file size
     size_mb = LOG_FILE.stat().st_size / (1024 * 1024)  # Convert bytes to MB
-    
+
     # Rotate if either condition is met
-    if (age_days >= config.get("log_retention_days", 3) or 
-        size_mb >= config.get("log_max_size_mb", 10)):
+    if age_days >= config.get("log_retention_days", 3) or size_mb >= config.get(
+        "log_max_size_mb", 10
+    ):
         try:
             # Create backup of old log
             backup_file = LOG_FILE.with_suffix(f".bak.{int(time.time())}")
             LOG_FILE.rename(backup_file)
-            
+
             # Limit number of backups to keep
             backup_files = sorted(
-                CONFIG_DIR.glob("log.txt.bak.*"),
-                key=lambda x: x.stat().st_mtime
+                CONFIG_DIR.glob("log.txt.bak.*"), key=lambda x: x.stat().st_mtime
             )
-            
+
             # Keep only the 3 most recent backups
             for old_file in backup_files[:-3]:
                 old_file.unlink()
-                
+
         except Exception as e:
             # If failed to rotate, just continue with current log
             pass
+
 
 # ====== Configuration Management ======
 
@@ -220,7 +223,7 @@ def create_temp_email() -> Tuple[bool, str, str, List[Dict]]:
     # Get preferred email service
     service_name = config.get("preferred_email_service", "mail.gw")
     provider_config = config.get("providers", {}).get(service_name, {})
-    
+
     logging.info(f"Creating temporary email using {service_name} provider")
 
     # Create email provider
@@ -236,9 +239,9 @@ def create_temp_email() -> Tuple[bool, str, str, List[Dict]]:
         if not success:
             logging.error("Failed to create temporary email")
             return False, "", "", []
-            
+
         logging.info(f"Successfully created email: {email}")
-        
+
         # Save email to history
         save_history(
             "email", {"email": email, "password": password, "service": service_name}
@@ -275,7 +278,7 @@ def check_email_messages(
     provider_config = config.get("providers", {}).get(service_name, {})
 
     logging.info(f"Checking messages for {email} using {service_name} provider")
-    
+
     # Create email provider
     email_provider = registry.create_email_provider(service_name, provider_config)
     if not email_provider:
@@ -323,7 +326,7 @@ def get_email_message_content(
     provider_config = config.get("providers", {}).get(service_name, {})
 
     logging.info(f"Getting message content for message ID: {message_id}")
-    
+
     # Create email provider
     email_provider = registry.create_email_provider(service_name, provider_config)
     if not email_provider:

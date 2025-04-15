@@ -1032,9 +1032,9 @@ def general_settings_ui():
         console.print(table)
 
         choice = Prompt.ask(
-            "Select an option to change", 
-            choices=["0", "1", "2", "3", "4", "5", "6", "7"], 
-            default="0"
+            "Select an option to change",
+            choices=["0", "1", "2", "3", "4", "5", "6", "7"],
+            default="0",
         )
     else:
         print(f"{Fore.CYAN}General Settings:{Style.RESET_ALL}")
@@ -1043,9 +1043,7 @@ def general_settings_ui():
             f"2. Save History: {'Enabled' if config.get('save_history', True) else 'Disabled'}"
         )
         print(f"3. History Limit: {config.get('history_limit', 20)} items")
-        print(
-            f"4. Logging: {'Enabled' if config.get('logging', True) else 'Disabled'}"
-        )
+        print(f"4. Logging: {'Enabled' if config.get('logging', True) else 'Disabled'}")
         print(f"5. Log Retention: {config.get('log_retention_days', 3)} days")
         print(f"6. Log Size Limit: {config.get('log_max_size_mb', 10)} MB")
         print(f"7. View Log File")
@@ -1104,7 +1102,8 @@ def general_settings_ui():
     elif choice == "5":
         # Log retention days
         days = prompt(
-            "Enter log retention in days", default=str(config.get("log_retention_days", 3))
+            "Enter log retention in days",
+            default=str(config.get("log_retention_days", 3)),
         )
 
         try:
@@ -1138,22 +1137,23 @@ def general_settings_ui():
         clear_screen()
         print_logo()
         print_step("1", "1", "Log File")
-        
+
         if not os.path.exists(LOG_FILE):
             print_warning("Log file does not exist yet")
         else:
             import logging
+
             logging.info("User viewed log file from settings")
-            
+
             if HAS_RICH:
                 try:
-                    with open(LOG_FILE, 'r') as f:
+                    with open(LOG_FILE, "r") as f:
                         console.print(Panel(f.read(), title="TempIdentity Log File"))
                 except Exception as e:
                     print_error(f"Error reading log file: {e}")
             else:
                 try:
-                    with open(LOG_FILE, 'r') as f:
+                    with open(LOG_FILE, "r") as f:
                         print(f.read())
                 except Exception as e:
                     print_error(f"Error reading log file: {e}")
@@ -1257,7 +1257,7 @@ def main():
     try:
         # Initialize logging
         setup_logging()
-        
+
         # Get command-line arguments before logging for privacy
         parser = argparse.ArgumentParser(
             description="TempIdentity - Temporary Email & SMS Tool"
@@ -1272,15 +1272,14 @@ def main():
             "--sms", action="store_true", help="Create a temporary phone number"
         )
         parser.add_argument("--wait", type=int, help="Wait time in seconds")
-        parser.add_argument(
-            "--log-view", action="store_true", help="View the log file"
-        )
+        parser.add_argument("--log-view", action="store_true", help="View the log file")
         args = parser.parse_args()
-        
+
         # Log start of program
         import logging
+
         logging.info(f"TempIdentity v{__version__} starting")
-        
+
         # Initialize the registry
         get_available_providers()
 
@@ -1293,7 +1292,7 @@ def main():
         if args.log_view:
             if os.path.exists(LOG_FILE):
                 if HAS_RICH:
-                    with open(LOG_FILE, 'r') as f:
+                    with open(LOG_FILE, "r") as f:
                         console.print(Panel(f.read(), title="TempIdentity Log File"))
                 else:
                     os.system(f"cat {LOG_FILE}")
@@ -1313,7 +1312,7 @@ def main():
 
         # Interactive mode
         logging.info("Starting interactive mode")
-        
+
         # First run wizard
         if not config_exists:
             run_setup_wizard()
@@ -1345,12 +1344,14 @@ def main():
                 settings_menu_ui()
     except KeyboardInterrupt:
         import logging
+
         logging.info("Program interrupted by user (KeyboardInterrupt)")
         clear_screen()
         print_logo()
         print_info("Exiting TempIdentity...")
     except Exception as e:
         import logging
+
         logging.exception(f"Unhandled exception: {str(e)}")
         print_error(f"An error occurred: {e}")
         print_info(f"Check the log file for details: {LOG_FILE}")
