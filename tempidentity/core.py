@@ -19,9 +19,17 @@ LOG_FILE = CONFIG_DIR / "log.txt"
 
 # Default configuration
 DEFAULT_CONFIG = {
-    "preferred_email_service": "mail.gw",
+    "preferred_email_service": "mailgw_improved",
     "preferred_sms_service": "textverified",
-    "providers": {"textverified": {"api_key": ""}, "mail.gw": {}},
+    "providers": {
+        "textverified": {"api_key": ""}, 
+        "mail.gw": {}, 
+        "mailgw_improved": {},
+        "1secmail": {}, 
+        "tempmail": {}, 
+        "emailjs": {},
+        "10minutemail": {}
+    },
     "default_wait_time": 120,
     "save_history": True,
     "history_limit": 20,
